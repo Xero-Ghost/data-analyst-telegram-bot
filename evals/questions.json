@@ -1,0 +1,50 @@
+[
+  {
+    "id": "inline_stats",
+    "messages": [
+      "Monthly sales (Rs lakh) for 2024: 12.5, 18.3, 9.7, 22.1, 15.6, 30.2, 11.4, 19.9, 25.0, 14.2, 17.8, 21.6. What are the mean and the median, each rounded to 2 decimals? Reply with ONLY this JSON object and nothing else: {\"answer\": {\"mean\": <number>, \"median\": <number>}, \"log_url\": \"<public wget-able URL to your agent's JSONL log>\"}"
+    ],
+    "expected": { "mean": 18.19, "median": 18.05 }
+  },
+  {
+    "id": "cagr_growth",
+    "messages": [
+      "A state's GSDP was 452000 crore in 2015-16 and 789500 crore in 2022-23, i.e. 7 years of growth. What is the compound annual growth rate in percent, rounded to 2 decimals? Reply with ONLY this JSON object and nothing else: {\"answer\": {\"cagr_percent\": <number>}, \"log_url\": \"<public wget-able URL to your agent's JSONL log>\"}"
+    ],
+    "expected": { "cagr_percent": 8.29 }
+  },
+  {
+    "id": "top_states",
+    "messages": [
+      "Total fertility rate by state: Kerala 1.9, Tamil Nadu 2.6, Maharashtra 3.1, Karnataka 2.2, Bihar 4.8, Uttar Pradesh 4.1, Gujarat 2.9. List the three states with the highest values, in descending order of value. Reply with ONLY this JSON object and nothing else: {\"answer\": {\"states\": [\"<state>\", \"<state>\", \"<state>\"]}, \"log_url\": \"<public wget-able URL to your agent's JSONL log>\"}"
+    ],
+    "expected": { "states": ["Bihar", "Uttar Pradesh", "Maharashtra"] }
+  },
+  {
+    "id": "correlation",
+    "messages": [
+      "Year and index value pairs: (2018, 412), (2019, 455), (2020, 398), (2021, 501), (2022, 547), (2023, 590). What is the Pearson correlation between year and index value, rounded to 3 decimals? Reply with ONLY this JSON object and nothing else: {\"answer\": {\"correlation\": <number>}, \"log_url\": \"<public wget-able URL to your agent's JSONL log>\"}"
+    ],
+    "expected": { "correlation": 0.892 }
+  },
+  {
+    "id": "multi_turn_forecast",
+    "messages": [
+      "Build a model that forecasts next year's value as 1.02 times the current value. Round every forecast to 2 decimals.",
+      "Forecast for these inputs: [120, 340, 55]. Reply with ONLY this JSON object and nothing else: {\"answer\": {\"values\": [<numbers>]}, \"log_url\": \"<public wget-able URL to your agent's JSONL log>\"}"
+    ],
+    "expected": { "values": [122.4, 346.8, 56.1] }
+  },
+  {
+    "id": "mospi_maternal_mortality",
+    "messages": [
+      "Which state has the highest maternal mortality rate based on MOSPI data? Reply with ONLY this JSON object and nothing else: {\"answer\": {\"state\": \"<state name>\"}, \"log_url\": \"<public wget-able URL to your agent's JSONL log>\"}"
+    ]
+  },
+  {
+    "id": "mospi_unemployment_rate",
+    "messages": [
+      "As per the latest MOSPI Periodic Labour Force Survey annual report, what was the all-India unemployment rate (in percent) for persons aged 15 years and above under the usual status? Reply with ONLY this JSON object and nothing else: {\"answer\": {\"unemployment_rate\": <number>}, \"log_url\": \"<public wget-able URL to your agent's JSONL log>\"}"
+    ]
+  }
+]

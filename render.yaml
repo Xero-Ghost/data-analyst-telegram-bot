@@ -1,0 +1,21 @@
+# Optional fallback host. Render's free web service + RUN_POLLING=1 means the
+# bot long-polls Telegram, so there is no webhook and no cold-start race.
+services:
+  - type: web
+    name: tds-data-analyst-bot
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn bot.server:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: RUN_POLLING
+        value: "1"
+      - key: LOG_STORE
+        value: local
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: AIPIPE_TOKEN
+        sync: false
+      - key: PUBLIC_BASE_URL
+        sync: false
