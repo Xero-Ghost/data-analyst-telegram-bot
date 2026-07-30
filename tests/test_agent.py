@@ -9,7 +9,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from bot import agent, config, state  # noqa: E402
+from bot import agent, config, state, tools  # noqa: E402
 
 QUESTION = ('Add 2 and 2. Reply with ONLY this JSON object and nothing else: '
             '{"answer": {"value": <number>}, "log_url": "<public wget-able URL>"}')
@@ -129,6 +129,21 @@ def test_run_log_is_jsonl_with_the_expected_events(monkeypatch):
     assert events[0] == "run_start" and events[-1] == "run_end"
     assert {"submit_answer", "final_reply"} <= set(events)
     assert all(line["run_id"] == run_log.run_id for line in lines)
+
+
+def test_sandbox_inherits_the_parent_import_path():
+    """Serverless runtimes add the bundled deps to sys.path at runtime, so the
+    subprocess only finds pandas/numpy if we pass that path along."""
+    import os
+    import sys
+
+    child_path = tools._child_env()["PYTHONPATH"].split(os.pathsep)
+    assert all(p in child_path for p in sys.path if p)
+
+
+def test_sandbox_can_import_pandas():
+    out = asyncio.run(tools.run_python("import pandas as pd; print(pd.Series([1, 2, 3]).mean())"))
+    assert "2.0" in out
 
 
 def test_duplicate_updates_are_ignored(monkeypatch, tmp_path):

@@ -123,6 +123,21 @@ TOOL_SPECS: list[dict[str, Any]] = [
 # --------------------------------------------------------------------------
 # run_python
 # --------------------------------------------------------------------------
+def _child_env() -> dict[str, str]:
+    """Environment for the sandbox subprocess.
+
+    Serverless runtimes put the bundled dependencies on sys.path at runtime
+    rather than in the interpreter's default site-packages, so a plain child
+    process cannot import pandas/numpy. Handing it the parent's sys.path fixes
+    that everywhere without hard-coding any platform's layout.
+    """
+    paths = list(dict.fromkeys(p for p in sys.path if p))
+    if os.environ.get("PYTHONPATH"):
+        paths.append(os.environ["PYTHONPATH"])
+    return {**os.environ, "PYTHONIOENCODING": "utf-8", "MPLBACKEND": "Agg",
+            "PYTHONPATH": os.pathsep.join(paths)}
+
+
 async def run_python(code: str, timeout: float | None = None) -> str:
     timeout = timeout or config.PYTHON_EXEC_TIMEOUT
     config.ensure_dirs()
@@ -135,7 +150,7 @@ async def run_python(code: str, timeout: float | None = None) -> str:
             cwd=str(config.WORK_DIR),
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
-            env={**os.environ, "PYTHONIOENCODING": "utf-8", "MPLBACKEND": "Agg"},
+            env=_child_env(),
         )
     except NotImplementedError:  # no subprocess support on this platform
         return _run_python_inprocess(code)
