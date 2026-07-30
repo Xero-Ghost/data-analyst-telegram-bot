@@ -41,11 +41,13 @@ TOOL_SPECS: list[dict[str, Any]] = [
         "function": {
             "name": "run_python",
             "description": (
-                "Execute a Python 3 script and return its stdout/stderr. pandas, numpy, "
-                "openpyxl, bs4, httpx and pypdf are installed and the script has network "
-                "access. Use this for ALL arithmetic, statistics, regression, sorting, "
-                "date maths and parsing of downloaded files. You must print() what you "
-                "want to see. Files saved by fetch_url are in the working directory."
+                "Execute a Python 3 script and return its stdout/stderr. The installed "
+                "libraries are pandas, numpy, openpyxl, bs4, lxml, httpx and pypdf - note "
+                "the PDF library is 'pypdf' (PyPDF2 does not exist here), and nothing else "
+                "can be installed. The script has network access. Use this for ALL "
+                "arithmetic, statistics, regression, sorting, date maths and parsing of "
+                "downloaded files. You must print() what you want to see. Files saved by "
+                "fetch_url are in the working directory, under the name it reported."
             ),
             "parameters": {
                 "type": "object",

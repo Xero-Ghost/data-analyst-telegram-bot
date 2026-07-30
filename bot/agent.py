@@ -47,6 +47,11 @@ censusindia.gov.in.
 - Multi-turn: earlier turns are context - answer the LAST user message.
 - Budget is limited. Two or three good sources beat ten mediocre ones; if a \
 fetch fails twice, try a different source instead of retrying.
+- fetch_url already gives you the readable text of a PDF and the head of a \
+CSV/Excel file - only re-open the saved file in run_python when you need more \
+of it than the preview showed.
+- Check how old a source is. Prefer the most recent release; an older bulletin \
+is a fallback, not a first choice.
 - If you cannot fully verify, submit your best-supported answer anyway. Never \
 submit null, an apology, or an error message as the answer.
 """
