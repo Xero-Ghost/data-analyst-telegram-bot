@@ -45,8 +45,8 @@ Design decisions worth knowing:
 | Decision | Why |
 | --- | --- |
 | Reply to **every** message with a valid JSON object | A multi-turn question arrives as separate messages and the grader reads the *last* reply. Answering each turn means the last one is always a real answer. |
-| HTTP 200 returned at `RESPOND_AFTER_SECONDS` (50s) | Telegram re-sends an update if the webhook is slow; a duplicate reply would corrupt a multi-turn run. The agent finishes in the background and sends the reply itself. |
-| `update_id` de-duplication | Second line of defence against Telegram retries. |
+| Serverless waits for the run; long-lived hosts answer early | Telegram re-sends an update if the webhook is slow. A long-lived process can reply 200 at `RESPOND_AFTER_SECONDS` and finish in the background — but a serverless instance is *suspended the moment it responds*, which silently kills the run. So on Vercel the webhook holds the request (`RESPOND_AFTER_SECONDS=0`, the default there) and the retries are dropped as duplicates. |
+| `update_id` de-duplication | Makes those Telegram retries harmless — without it a retry would answer twice and corrupt a multi-turn exchange. |
 | Log published to GitHub, not local disk | Serverless disks are ephemeral and per-instance; `raw.githubusercontent.com` stays `wget`-able long after the run. |
 | The model never formats the final message | `bot/shape.py` extracts the JSON, wraps it under `answer`, injects the real `log_url`, and serialises it — so prose or code fences can't leak into the reply. |
 | Answers computed, never recalled | The system prompt forces all arithmetic through `run_python`. |
@@ -277,8 +277,8 @@ that didn't parse, or a filter the model skipped.
 | `GITHUB_TOKEN` / `GITHUB_REPO` / `GITHUB_BRANCH` | — / — / `main` | for `LOG_STORE=github` |
 | `PUBLIC_BASE_URL` | — | deployment URL, no trailing slash |
 | `AGENT_MAX_STEPS` | `12` | tool calls per question |
-| `AGENT_TIME_BUDGET` | `200` | seconds; grading allows 300 |
-| `RESPOND_AFTER_SECONDS` | `50` | when to answer Telegram and go background |
+| `AGENT_TIME_BUDGET` | `180` | seconds per answer; the grader's 300s covers a whole multi-turn exchange, and a serverless function is killed at 300s |
+| `RESPOND_AFTER_SECONDS` | `0` on serverless, `50` elsewhere | `0` = hold the webhook until the answer is sent. Only raise it where the process outlives the response |
 | `ALWAYS_INCLUDE_LOG_URL` | `false` | by default the reply mirrors the requested shape exactly; set `1` to append `log_url` even when the question doesn't ask for it |
 | `TAVILY_API_KEY` / `SERPER_API_KEY` / `BRAVE_API_KEY` | — | optional; better search than the keyless fallbacks |
 | `RUN_POLLING` | unset | `1` = long-poll instead of webhook (always-on hosts) |
@@ -320,6 +320,7 @@ tests/                offline tests (no keys needed)
 | `log_url` 404s | GitHub PAT lacks `Contents: Read and write`, or `GITHUB_REPO` is wrong — the `log_publish_failed` event in the run log says which |
 | Everything times out | `LLM_MODEL` may not support tool calling, or the AI Pipe quota is spent (`curl https://aipipe.org/usage -H "Authorization: Bearer $AIPIPE_TOKEN"`) |
 | Vercel function times out at 60s | Fluid Compute is off; turn it on so `maxDuration: 300` applies |
+| Quick questions answered, slow ones silent (no log published either) | `RESPOND_AFTER_SECONDS` is above 0 on a serverless host — the instance froze mid-run. Set it to `0` |
 
 ## License
 

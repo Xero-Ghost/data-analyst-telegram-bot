@@ -71,6 +71,20 @@ def test_webhook_ignores_a_resent_update(client, monkeypatch):
     assert len(calls) == 1
 
 
+def test_serverless_mode_finishes_the_run_before_responding(client, monkeypatch):
+    """With RESPOND_AFTER_SECONDS=0 (the serverless default) the response must
+    come after the answer was sent - the platform suspends the instance the
+    moment we reply, so an unfinished background run would be lost."""
+    calls = []
+    stub_handler(monkeypatch, calls, delay=0.2)
+    monkeypatch.setattr(config, "RESPOND_AFTER_SECONDS", 0.0)
+
+    resp = client.post("/telegram/webhook", json=UPDATE,
+                       headers={"X-Telegram-Bot-Api-Secret-Token": SECRET})
+    assert resp.json() == {"ok": True}
+    assert len(calls) == 1
+
+
 def test_slow_run_answers_telegram_early_and_keeps_working(client, monkeypatch):
     """Telegram re-sends after ~60s, so a long analysis must still get a 200
     quickly while the agent carries on in the background."""

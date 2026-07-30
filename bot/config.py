@@ -55,7 +55,10 @@ LLM_TIMEOUT = _float("LLM_TIMEOUT", 120.0)
 
 # --- agent ------------------------------------------------------------------
 AGENT_MAX_STEPS = _int("AGENT_MAX_STEPS", 12)
-AGENT_TIME_BUDGET = _float("AGENT_TIME_BUDGET", 200.0)
+# The grader's timeout covers a whole (possibly multi-turn) exchange, usually
+# 300s, and a serverless function is killed at 300s too - so one answer gets a
+# comfortably smaller slice than either limit.
+AGENT_TIME_BUDGET = _float("AGENT_TIME_BUDGET", 180.0)
 PYTHON_EXEC_TIMEOUT = _float("PYTHON_EXEC_TIMEOUT", 60.0)
 HTTP_TIMEOUT = _float("HTTP_TIMEOUT", 45.0)
 MAX_HISTORY_TURNS = _int("MAX_HISTORY_TURNS", 8)
@@ -66,9 +69,12 @@ MAX_HISTORY_TURNS = _int("MAX_HISTORY_TURNS", 8)
 ALWAYS_INCLUDE_LOG_URL = _str("ALWAYS_INCLUDE_LOG_URL", "false").lower() in ("1", "true", "yes")
 
 # Telegram re-sends an update if the webhook does not return 200 within ~60s.
-# We answer the HTTP request at this mark and let the agent finish in the
-# background, so a slow question never turns into a duplicate reply.
-RESPOND_AFTER_SECONDS = _float("RESPOND_AFTER_SECONDS", 50.0)
+# Answering early and finishing in the background avoids that - but only where
+# the process survives the response. Serverless platforms suspend the instance
+# as soon as the response is sent, killing the run, so there the webhook waits
+# for the answer instead and the update_id de-duplication absorbs the retries.
+# 0 = wait for the run to finish before responding.
+RESPOND_AFTER_SECONDS = _float("RESPOND_AFTER_SECONDS", 0.0 if IS_SERVERLESS else 50.0)
 
 # --- run log publishing -----------------------------------------------------
 GITHUB_TOKEN = _str("GITHUB_TOKEN")

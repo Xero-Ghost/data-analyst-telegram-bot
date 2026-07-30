@@ -104,11 +104,20 @@ async def telegram_webhook(
         return {"ok": True, "duplicate": True}
 
     task = _spawn(_process(update))
+
+    if config.RESPOND_AFTER_SECONDS <= 0:
+        # Serverless: the instance is suspended the moment we respond, so an
+        # unfinished run would simply vanish. Hold the request until the answer
+        # is sent; Telegram's retries meanwhile are dropped as duplicates above.
+        await task
+        return {"ok": True}
+
     try:
         await asyncio.wait_for(asyncio.shield(task), timeout=config.RESPOND_AFTER_SECONDS)
         return {"ok": True}
     except asyncio.TimeoutError:
-        # Answer Telegram now; the agent finishes and sends the reply itself.
+        # Long-lived process: answer Telegram now, the agent finishes and sends
+        # the reply itself.
         return {"ok": True, "status": "processing"}
 
 
