@@ -54,7 +54,10 @@ LLM_FALLBACK_MODEL = _str("LLM_FALLBACK_MODEL", "gpt-4.1-nano")
 LLM_TIMEOUT = _float("LLM_TIMEOUT", 120.0)
 
 # --- agent ------------------------------------------------------------------
-AGENT_MAX_STEPS = _int("AGENT_MAX_STEPS", 12)
+# Steps are cheap next to the wall clock (a step is ~1-15s), and running out of
+# them mid-hunt is what makes an agent invent an answer - so let time be the
+# binding limit, not this.
+AGENT_MAX_STEPS = _int("AGENT_MAX_STEPS", 20)
 # The grader's timeout covers a whole (possibly multi-turn) exchange, usually
 # 300s, and a serverless function is killed at 300s too - so one answer gets a
 # comfortably smaller slice than either limit.

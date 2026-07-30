@@ -263,25 +263,57 @@ def _pdf_preview(path: Path) -> str:
         return f"[could not extract pdf text: {type(exc).__name__}: {exc}]"
 
 
-async def fetch_url(url: str) -> str:
+async def _http_get(url: str, headers: dict[str, str], verify: bool) -> httpx.Response:
+    async with httpx.AsyncClient(timeout=config.HTTP_TIMEOUT, follow_redirects=True,
+                                 verify=verify) as client:
+        return await client.get(url, headers=headers)
+
+
+async def fetch_url(url: str, memo: dict[str, str] | None = None) -> str:
     if not re.match(r"^https?://", url, re.I):
         url = "https://" + url.lstrip("/")
     config.ensure_dirs()
+
+    if memo is not None and url in memo:
+        previous = memo[url]
+        if previous.startswith("ERROR"):
+            return (f"Already tried this URL in this run and it failed: "
+                    f"{previous.splitlines()[0]}\nDo not retry it - find a different source.")
+        return "Already fetched in this run; same content as before.\n\n" + previous
 
     headers = {
         "User-Agent": config.USER_AGENT,
         "Accept": "text/html,application/xhtml+xml,application/json,text/csv,*/*",
         "Accept-Language": "en-US,en;q=0.9",
     }
+    insecure_note = ""
     try:
-        async with httpx.AsyncClient(timeout=config.HTTP_TIMEOUT, follow_redirects=True,
-                                     verify=True) as client:
-            resp = await client.get(url, headers=headers)
+        resp = await _http_get(url, headers, verify=True)
     except Exception as exc:
-        return f"ERROR fetching {url}: {type(exc).__name__}: {exc}"
+        # Several Indian government hosts (censusindia.gov.in among them) serve an
+        # incomplete certificate chain. Browsers repair it by fetching the missing
+        # intermediate; Python does not, and the SRS bulletins would be
+        # unreachable. Retry unverified - these are public read-only documents,
+        # and the fallback is recorded in the run log.
+        if "CERTIFICATE_VERIFY_FAILED" not in str(exc):
+            result = f"ERROR fetching {url}: {type(exc).__name__}: {exc}"
+            if memo is not None:
+                memo[url] = result
+            return result
+        try:
+            resp = await _http_get(url, headers, verify=False)
+            insecure_note = "note: incomplete TLS chain on this host, fetched without verification\n"
+        except Exception as exc2:
+            result = f"ERROR fetching {url}: {type(exc2).__name__}: {exc2}"
+            if memo is not None:
+                memo[url] = result
+            return result
 
     if resp.status_code >= 400:
-        return f"ERROR fetching {url}: HTTP {resp.status_code}\n{truncate(resp.text, 1000)}"
+        result = f"ERROR fetching {url}: HTTP {resp.status_code}\n{truncate(resp.text, 1000)}"
+        if memo is not None:
+            memo[url] = result
+        return result
 
     raw = resp.content[:MAX_DOWNLOAD_BYTES]
     ctype = resp.headers.get("content-type", "")
@@ -290,7 +322,7 @@ async def fetch_url(url: str) -> str:
 
     lower_url = str(resp.url).lower()
     header = (f"URL: {resp.url}\ncontent-type: {ctype or 'unknown'}\nbytes: {len(raw)}\n"
-              f"saved_to: {path.name}  (in the run_python working directory)\n")
+              f"saved_to: {path.name}  (in the run_python working directory)\n{insecure_note}")
 
     if "json" in ctype or lower_url.endswith(".json"):
         try:
@@ -306,7 +338,10 @@ async def fetch_url(url: str) -> str:
     else:
         body = raw.decode("utf-8", "replace")
 
-    return truncate(header + "\n" + body)
+    result = truncate(header + "\n" + body)
+    if memo is not None:
+        memo[url] = result
+    return result
 
 
 # --------------------------------------------------------------------------
@@ -440,11 +475,11 @@ async def web_search(query: str, num_results: int = 6) -> str:
 # --------------------------------------------------------------------------
 # dispatch
 # --------------------------------------------------------------------------
-async def execute(name: str, args: dict[str, Any]) -> str:
+async def execute(name: str, args: dict[str, Any], memo: dict[str, str] | None = None) -> str:
     if name == "run_python":
         return await run_python(args.get("code", ""))
     if name == "fetch_url":
-        return await fetch_url(args.get("url", ""))
+        return await fetch_url(args.get("url", ""), memo)
     if name == "web_search":
         return await web_search(args.get("query", ""), args.get("num_results", 6))
     return f"ERROR: unknown tool {name!r}"

@@ -58,7 +58,11 @@ submit null, an apology, or an error message as the answer.
 
 FINAL_NUDGE = (
     "Time is up. Reply now with ONLY the final JSON object in the exact shape the "
-    "question asked for - no prose, no code fences. Use your best supported answer."
+    "question asked for - no prose, no code fences.\n"
+    "Base it on the figures you actually retrieved in this run. If the sources did "
+    "not load, fall back to what you reliably know about this dataset - the "
+    "long-standing published value - rather than picking a plausible-sounding name. "
+    "A remembered fact beats a guess; a guess is always wrong."
 )
 
 
@@ -107,6 +111,7 @@ async def answer_question(
                 log_url=log_url, question=question, turns=len(conversation))
 
     messages = build_messages(conversation)
+    fetched: dict[str, str] = {}   # per-run URL cache: a repeat fetch must not burn a step
     answer: Any = None
     status = "ok"
 
@@ -147,7 +152,7 @@ async def answer_question(
                     break
 
                 started = time.time()
-                result = await tools.execute(name, args)
+                result = await tools.execute(name, args, fetched)
                 run_log.add("tool_result", step=step, tool=name, args=args,
                             seconds=round(time.time() - started, 2), result=result)
                 messages.append({"role": "tool", "tool_call_id": call["id"],

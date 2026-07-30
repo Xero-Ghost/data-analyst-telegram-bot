@@ -276,7 +276,7 @@ that didn't parse, or a filter the model skipped.
 | `LOG_STORE` | `github` if a token+repo are set, else `local` | |
 | `GITHUB_TOKEN` / `GITHUB_REPO` / `GITHUB_BRANCH` | — / — / `main` | for `LOG_STORE=github` |
 | `PUBLIC_BASE_URL` | — | deployment URL, no trailing slash |
-| `AGENT_MAX_STEPS` | `12` | tool calls per question |
+| `AGENT_MAX_STEPS` | `20` | tool calls per question; the time budget is the real limit |
 | `AGENT_TIME_BUDGET` | `180` | seconds per answer; the grader's 300s covers a whole multi-turn exchange, and a serverless function is killed at 300s |
 | `RESPOND_AFTER_SECONDS` | `0` on serverless, `50` elsewhere | `0` = hold the webhook until the answer is sent. Only raise it where the process outlives the response |
 | `ALWAYS_INCLUDE_LOG_URL` | `false` | by default the reply mirrors the requested shape exactly; set `1` to append `log_url` even when the question doesn't ask for it |
